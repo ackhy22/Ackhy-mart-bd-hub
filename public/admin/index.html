@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+</head>
+<body>
+  <h1>📋 Order List</h1>
+  <div id="orders">Loading orders...</div>
+
+  <script>
+    if (sessionStorage.getItem("adminAuth") !== "true") {
+      window.location.href = "index.html";
+    }
+
+    fetch("https://ackhy-mart-bd-hub-default-rtdb.firebaseio.com/orders.json")
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById("orders");
+        container.innerHTML = "";
+        if (!data) {
+          container.textContent = "No orders found.";
+          return;
+        }
+        Object.values(data).reverse().forEach(order => {
+          const div = document.createElement("div");
+          div.innerHTML = `
+            <p><strong>👤 Name:</strong> ${order.name}</p>
+            <p>📞 ${order.phone} | 📍 ${order.address}, ${order.thana}, ${order.district}</p>
+            <p>🚚 ${order.area} | 💰 ${order.payment}</p>
+            <p>📨 Sender: ${order.paid_number} | Amount: ${order.amount}৳</p>
+            <hr>
+          `;
+          container.appendChild(div);
+        });
+      });
+  </script>
+</body>
+</html>

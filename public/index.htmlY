@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ackhy's Mart BD Hub - Order</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0; padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      font-size: 16px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+
+    /* Popup styles */
+    .popup {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .popup.active {
+      display: flex;
+    }
+    .popup-content {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+    }
+    .popup-content button {
+      width: auto;
+      margin: 10px 5px 0 5px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Ackhy's Mart BD Hub - Order Form</h1>
+
+  <form id="orderForm">
+    <input type="text" name="name" placeholder="Full Name" required />
+    <input type="text" name="phone" placeholder="Phone Number" required />
+    <input type="text" name="address" placeholder="Address" required />
+    <input type="text" name="thana" placeholder="Thana" required />
+    <input type="text" name="district" placeholder="District" required />
+
+    <label>Delivery Area:</label>
+    <select name="area" required>
+      <option value="Dhaka">Inside Dhaka (৳60)</option>
+      <option value="Outside Dhaka">Outside Dhaka (৳120)</option>
+    </select>
+
+    <label>Payment Option:</label>
+    <select name="payment" required>
+      <option value="Full Payment">Full Payment</option>
+      <option value="Only Delivery Charge">Only Delivery Charge</option>
+    </select>
+
+    <button type="submit">Proceed to Payment Info</button>
+  </form>
+
+  <!-- Popup 1: Confirm Order Details -->
+  <div class="popup" id="confirmPopup">
+    <div class="popup-content">
+      <h2>Confirm Your Order</h2>
+      <p id="orderSummary"></p>
+      <button id="confirmYes">Confirm</button>
+      <button id="confirmNo">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Popup 2: Payment Info -->
+  <div class="popup" id="paymentPopup">
+    <div class="popup-content">
+      <h2>Payment Information</h2>
+      <input type="text" id="paidNumber" placeholder="Sender Number" required />
+      <input type="number" id="amountPaid" placeholder="Amount Paid" required />
+      <button id="paymentSubmit">Submit Payment</button>
+      <button id="paymentCancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Popup 3: Success Message -->
+  <div class="popup" id="successPopup">
+    <div class="popup-content">
+      <h2>Thank You!</h2>
+      <p>Your order has been submitted successfully.</p>
+      <button id="successOk">OK</button>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('orderForm');
+    const confirmPopup = document.getElementById('confirmPopup');
+    const paymentPopup = document.getElementById('paymentPopup');
+    const successPopup = document.getElementById('successPopup');
+
+    const orderSummary = document.getElementById('orderSummary');
+    const confirmYes = document.getElementById('confirmYes');
+    const confirmNo = document.getElementById('confirmNo');
+
+    const paidNumber = document.getElementById('paidNumber');
+    const amountPaid = document.getElementById('amountPaid');
+    const paymentSubmit = document.getElementById('paymentSubmit');
+    const paymentCancel = document.getElementById('paymentCancel');
+
+    const successOk = document.getElementById('successOk');
+
+    let orderData = {};
+
+    // Step 1: Submit form and show confirmation popup
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      orderData = Object.fromEntries(new FormData(form).entries());
+
+      // Show order summary in popup
+      orderSummary.innerHTML = `
+        <strong>Name:</strong> ${orderData.name}<br>
+        <strong>Phone:</strong> ${orderData.phone}<br>
+        <strong>Address:</strong> ${orderData.address}, ${orderData.thana}, ${orderData.district}<br>
+        <strong>Delivery Area:</strong> ${orderData.area}<br>
+        <strong>Payment Option:</strong> ${orderData.payment}
+      `;
+
+      confirmPopup.classList.add('active');
+    });
+
+    // Cancel confirmation
+    confirmNo.addEventListener('click', () => {
+      confirmPopup.classList.remove('active');
+    });
+
+    // Confirm order details, show payment popup
+    confirmYes.addEventListener('click', () => {
+      confirmPopup.classList.remove('active');
+      paymentPopup.classList.add('active');
+    });
+
+    // Cancel payment input
+    paymentCancel.addEventListener('click', () => {
+      paymentPopup.classList.remove('active');
+    });
+
+    // Submit payment info & send to Firebase
+    paymentSubmit.addEventListener('click', async () => {
+      const paidNumVal = paidNumber.value.trim();
+      const amountVal = amountPaid.value.trim();
+
+      if (!paidNumVal || !amountVal) {
+        alert('Please fill in all payment information.');
+        return;
+      }
+
+      orderData.paid_number = paidNumVal;
+      orderData.amount = amountVal;
+
+      try {
+        const res = await fetch('https://ackhy-mart-bd-hub-default-rtdb.firebaseio.com/orders.json', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(orderData),
+        });
+
+        if (res.ok) {
+          paymentPopup.classList.remove('active');
+          successPopup.classList.add('active');
+          form.reset();
+          paidNumber.value = '';
+          amountPaid.value = '';
+        } else {
+          alert('Failed to submit order.');
+        }
+      } catch (err) {
+        alert('Error submitting order.');
+      }
+    });
+
+    // Success popup OK button
+    successOk.addEventListener('click', () => {
+      successPopup.classList.remove('active');
+    });
+  </script>
+</body>
+</html>
